@@ -1,0 +1,25 @@
+{
+  "name": "@uphold/validator.js",
+  "version": "0.0.1",
+  "description": "Extensive validations built on top of validator.js",
+  "main": "index.js",
+  "author": "Uphold",
+  "license": "SEE LICENSE IN LICENSE",
+  "scripts": {
+    "changelog": "uphold-scripts changelog $npm_package_version",
+    "lint": "uphold-scripts lint",
+    "release": "uphold-scripts release",
+    "version": "uphold-scripts version"
+  },
+  "dependencies": {
+    "debugnyan": "^2.0.2",
+    "validator.js": "^2.0.3",
+    "validator.js-asserts": "^3.1.0"
+  },
+  "devDependencies": {
+    "uphold-scripts": "git+ssh://git@github.com/uphold/uphold-scripts#v0.1.0"
+  },
+  "pre-commit": [
+    "lint"
+  ]
+}
