@@ -3574,9 +3574,9 @@ unset-value@^1.0.0:
     has-value "^0.3.1"
     isobject "^3.0.0"
 
-"uphold-scripts@git+ssh://git@github.com/uphold/uphold-scripts#v0.1.0":
-  version "0.1.0"
-  resolved "git+ssh://git@github.com/uphold/uphold-scripts#dd98279bee59618ce042b56a9f12f339d7933527"
+"uphold-scripts@git+ssh://git@github.com/uphold/uphold-scripts#v0.2.1":
+  version "0.2.1"
+  resolved "git+ssh://git@github.com/uphold/uphold-scripts#d05265beec813db25d498ad638ccf0f1ebe14dc5"
   dependencies:
     "@uphold/github-changelog-generator" "^0.7.0"
     commander "^2.16.0"
@@ -3621,9 +3621,9 @@ validate-npm-package-license@^3.0.1:
     spdx-correct "^3.0.0"
     spdx-expression-parse "^3.0.0"
 
-validator.js-asserts@^3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/validator.js-asserts/-/validator.js-asserts-3.1.0.tgz#3bca2e0adea1b5b3113f7f965ed4f1ae63a4a823"
+validator.js-asserts@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/validator.js-asserts/-/validator.js-asserts-4.0.1.tgz#dc01ca7ad9b1e68c6affa520a43f8f082bd66b99"
   dependencies:
     lodash "^4.8.2"
     validator.js "^2.0.0"
