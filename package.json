@@ -4,7 +4,7 @@
   "description": "Extensive validations built on top of validator.js",
   "main": "index.js",
   "author": "Uphold",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "MIT",
   "scripts": {
     "changelog": "uphold-scripts changelog $npm_package_version",
     "lint": "uphold-scripts lint",
