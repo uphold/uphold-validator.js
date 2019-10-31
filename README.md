@@ -86,3 +86,7 @@ try {
 ```sh
 $ yarn release [<newversion> | major | minor | patch]
 ```
+
+## License
+
+MIT
