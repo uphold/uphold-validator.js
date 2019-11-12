@@ -6,20 +6,25 @@
 
 const { Assert: BaseAssert, Constraint, Validator } = require('validator.js');
 const asserts = require('validator.js-asserts');
-const log = require('debugnyan')('validator');
+
+/**
+ * No operation function.
+ */
+
+const noop = () => {};
 
 /**
  * Validate.
  */
 
-function validate(ValidationError) {
+function validate(ValidationError, logger) {
   const validator = new Validator();
 
   return (data, constraints) => {
     const errors = validator.validate(data, new Constraint(constraints, { deepRequired: true }));
 
     if (errors !== true) {
-      log.warn({ errors }, 'Validation failed');
+      logger(errors);
 
       throw new ValidationError(errors);
     }
@@ -30,17 +35,17 @@ function validate(ValidationError) {
  * Export.
  */
 
-module.exports = ({ AssertionError, ValidationError, extraAsserts } = {}) => {
+module.exports = ({ AssertionError, ValidationError, extraAsserts, logger = noop } = {}) => {
   const exports = {
     is: BaseAssert.extend({ ...asserts, ...extraAsserts })
   };
 
   if (AssertionError) {
-    exports.assert = validate(AssertionError);
+    exports.assert = validate(AssertionError, logger);
   }
 
   if (ValidationError) {
-    exports.validate = validate(ValidationError);
+    exports.validate = validate(ValidationError, logger);
   }
 
   return exports;

@@ -12,7 +12,6 @@
     "version": "uphold-scripts version"
   },
   "dependencies": {
-    "debugnyan": "^2.0.2",
     "validator.js": "^2.0.3",
     "validator.js-asserts": "^4.0.1"
   },
