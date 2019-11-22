@@ -1,6 +1,6 @@
 {
   "name": "@uphold/validator.js",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "Extensive validations built on top of validator.js",
   "main": "index.js",
   "author": "Uphold",
