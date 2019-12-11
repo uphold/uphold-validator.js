@@ -8,6 +8,12 @@ const { Assert: BaseAssert, Constraint, Validator } = require('validator.js');
 const asserts = require('validator.js-asserts');
 
 /**
+ * Identity function.
+ */
+
+const identity = arg => arg;
+
+/**
  * No operation function.
  */
 
@@ -17,16 +23,18 @@ const noop = () => {};
  * Validate.
  */
 
-function validate(ValidationError, logger) {
+function validate(ValidationError, logger, obfuscator) {
   const validator = new Validator();
 
   return (data, constraints) => {
     const errors = validator.validate(data, new Constraint(constraints, { deepRequired: true }));
 
     if (errors !== true) {
-      logger(errors);
+      const { errors: obfuscated } = obfuscator({ errors });
 
-      throw new ValidationError(errors);
+      logger(obfuscated);
+
+      throw new ValidationError(obfuscated);
     }
   };
 }
@@ -35,17 +43,17 @@ function validate(ValidationError, logger) {
  * Export.
  */
 
-module.exports = ({ AssertionError, ValidationError, extraAsserts, logger = noop } = {}) => {
+module.exports = ({ AssertionError, ValidationError, extraAsserts, logger = noop, obfuscator = identity } = {}) => {
   const exports = {
     is: BaseAssert.extend({ ...asserts, ...extraAsserts })
   };
 
   if (AssertionError) {
-    exports.assert = validate(AssertionError, logger);
+    exports.assert = validate(AssertionError, logger, obfuscator);
   }
 
   if (ValidationError) {
-    exports.validate = validate(ValidationError, logger);
+    exports.validate = validate(ValidationError, logger, obfuscator);
   }
 
   return exports;
