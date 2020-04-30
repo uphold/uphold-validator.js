@@ -11,8 +11,8 @@ Improvements over validator.js:
 
 Add to your package.json dependencies:
 
-```json
-"@uphold/validator.js": "git+ssh://git@github.com/uphold/uphold-validator.js"
+```sh
+npm install @uphold/validator.js
 ```
 
 ## Usage
