@@ -1,15 +1,23 @@
 # Uphold Validator.js
 
-Extensive validations built on top of validator.js.
+Extensive validations built on top of
+[validator.js](https://github.com/guillaumepotier/validator.js).
 
-Improvements over validator.js:
- - extended set of asserts
- - logging with debugnyan
- - throwing specific errors on validation failures
+Improvements over `validator.js`:
+
+- [extended set of asserts](https://github.com/uphold/validator.js-asserts)
+- logging with [debugnyan](https://github.com/uphold/debugnyan)
+- throwing specific errors on validation failures
 
 ## Install
 
-Add to your package.json dependencies:
+Install the package via `yarn`:
+
+```sh
+yarn add @uphold/validator.js
+```
+
+or via `npm`:
 
 ```sh
 npm install @uphold/validator.js
