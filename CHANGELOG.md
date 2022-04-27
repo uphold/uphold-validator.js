@@ -1,5 +1,8 @@
 # Changelog
 
+## [2.0.0](https://github.com/uphold/uphold-validator.js/releases/tag/v2.0.0) (2022-04-27)
+- Bump validator.js-asserts to v7.3.1 [\#29](https://github.com/uphold/uphold-validator.js/pull/29) ([acostalima](https://github.com/acostalima))
+
 ## [1.1.0](https://github.com/uphold/uphold-validator.js/releases/tag/v1.1.0) (2020-04-30)
 - Update npm installation instructions [\#11](https://github.com/uphold/uphold-validator.js/pull/11) ([nunofgs](https://github.com/nunofgs))
 - Bump mixin-deep from 1.3.1 to 1.3.2 [\#7](https://github.com/uphold/uphold-validator.js/pull/7) ([dependabot[bot]](https://github.com/apps/dependabot))
