@@ -1,6 +1,9 @@
 # Changelog
 
-## [2.0.0](https://github.com/uphold/uphold-validator.js/releases/tag/v2.0.0) (2022-04-27)
+## [2.1.0](https://github.com/uphold/uphold-validator.js/releases/tag/v2.1.0) (2022-10-12)
+- Add support for masking [\#33](https://github.com/uphold/uphold-validator.js/pull/33) ([acostalima](https://github.com/acostalima))
+
+## [v2.0.0](https://github.com/uphold/uphold-validator.js/releases/tag/v2.0.0) (2022-04-27)
 - Bump validator.js-asserts to v7.3.1 [\#29](https://github.com/uphold/uphold-validator.js/pull/29) ([acostalima](https://github.com/acostalima))
 
 ## [1.1.0](https://github.com/uphold/uphold-validator.js/releases/tag/v1.1.0) (2020-04-30)
