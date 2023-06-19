@@ -5533,10 +5533,9 @@ validate-npm-package-license@^3.0.1:
     spdx-correct "^3.0.0"
     spdx-expression-parse "^3.0.0"
 
-validator.js-asserts@^7.3.1:
-  version "7.3.1"
-  resolved "https://registry.yarnpkg.com/validator.js-asserts/-/validator.js-asserts-7.3.1.tgz#ac6de9c82861ea5571b5433558b00a9708254880"
-  integrity sha512-NCKicmp9OBPVw+xgBftzlJNBlqzySCYirp3lPcXAGDuciBxf3dgK+bcjZCf90aq3+/20HbDUopxWW0h6xcrnhA==
+"validator.js-asserts@git+ssh://git@github.com/uphold/validator.js-asserts#b5c7c731aef104b379a4c2627545b53d2b7ad7c4":
+  version "7.4.0"
+  resolved "git+ssh://git@github.com/uphold/validator.js-asserts#b5c7c731aef104b379a4c2627545b53d2b7ad7c4"
   dependencies:
     lodash "^4.17.21"
     validator.js "^2.0.0"
