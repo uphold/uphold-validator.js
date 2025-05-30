@@ -3,10 +3,11 @@
 Extensive validations built on top of validator.js.
 
 Improvements over validator.js:
- - extended set of asserts
- - logging with debugnyan
- - throwing specific errors on validation failures
- - mask validated data
+
+- extended set of asserts
+- logging with debugnyan
+- throwing specific errors on validation failures
+- mask validated data
 
 ## Status
 
@@ -34,7 +35,7 @@ module.exports = validator({
   AssertionError: Error,
   ValidationError: ValidationFailedError,
   extraAsserts: asserts,
-  mask: true
+  mask: true,
 });
 ```
 
@@ -44,11 +45,14 @@ Throw a 400 error (invalid user input):
 const { is, validate } = require('path/to/validator');
 
 try {
-  validate({
-    foo: 'bar'
-  }, {
-    foo: is.ofLength({ min: 5 })
-  });
+  validate(
+    {
+      foo: 'bar'
+    },
+    {
+      foo: is.ofLength({ min: 5 })
+    }
+  );
 } catch (e) {
   console.log({
     name: e.name,
@@ -73,14 +77,17 @@ Throw a 500 error (invalid code):
 const { assert, is } = require('path/to/validator');
 
 try {
-  assert({
-    foo: 'bar'
-  }, {
-    foo: is.ofLength({ min: 5 })
-  });
+  assert(
+    {
+      foo: 'bar',
+    },
+    {
+      foo: is.ofLength({ min: 5 })
+    }
+  );
 } catch (e) {
   console.log({
-    name: e.name
+    name: e.name,
   });
   // {
   //   name: 'Error'
@@ -95,12 +102,15 @@ Create a validator with masking enabled by passing the `mask` option set to `tru
 ```js
 const { assert, is } = require('path/to/validator');
 
-const validatedData = validate({
-  foo: 'bar',
-  biz: 'baz'
-}, {
-  foo: is.string()
-});
+const validatedData = validate(
+  {
+    foo: 'bar',
+    biz: 'baz'
+  },
+  {
+    foo: is.string()
+  }
+);
 
 console.log(validatedData);
 // { foo: 'bar' }

@@ -5,8 +5,8 @@
  */
 
 const { Assert: BaseAssert, Constraint, Validator } = require('validator.js');
-const asserts = require('validator.js-asserts');
 const _ = require('lodash');
+const asserts = require('validator.js-asserts');
 const maskObject = require('json-mask');
 
 /**
@@ -76,8 +76,8 @@ module.exports = ({
   ValidationError,
   extraAsserts,
   logger = noop,
-  obfuscator = identity,
-  mask = false
+  mask = false,
+  obfuscator = identity
 } = {}) => {
   const exports = {
     is: BaseAssert.extend({ ...asserts, ...extraAsserts })
