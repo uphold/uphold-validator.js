@@ -18,7 +18,7 @@ function AlwaysValid() {
   // eslint-disable-next-line no-underscore-dangle
   this.__class__ = 'AlwaysValid';
 
-  this.validate = function() {
+  this.validate = function () {
     return true;
   };
 
@@ -29,7 +29,7 @@ function AlwaysInvalid() {
   // eslint-disable-next-line no-underscore-dangle
   this.__class__ = 'AlwaysInvalid';
 
-  this.validate = function() {
+  this.validate = function () {
     return false;
   };
 
