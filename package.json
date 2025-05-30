@@ -6,12 +6,10 @@
   "author": "Uphold",
   "license": "MIT",
   "scripts": {
-    "changelog": "uphold-scripts changelog $npm_package_version",
     "lint": "uphold-scripts lint",
-    "release": "uphold-scripts release",
+    "release": "release-it",
     "test": "NODE_V8_COVERAGE=coverage node --test --experimental-test-coverage index.test.js",
-    "test:watch": "node --test --watch index.test.js",
-    "version": "uphold-scripts version"
+    "test:watch": "node --test --watch index.test.js"
   },
   "dependencies": {
     "json-mask": "^2.0.0",
@@ -20,7 +18,9 @@
     "validator.js-asserts": "^7.3.1"
   },
   "devDependencies": {
+    "@uphold/github-changelog-generator": "^4.0.2",
     "@uphold/http-errors": "^1.3.0",
+    "release-it": "^19.0.3",
     "uphold-scripts": "^0.4.0"
   },
   "pre-commit": [

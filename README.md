@@ -106,11 +106,10 @@ console.log(validatedData);
 // { foo: 'bar' }
 ```
 
-## Release
+## Release process
 
-```sh
-$ yarn release [<newversion> | major | minor | patch]
-```
+The release of a version is automated via the [release](https://github.com/uphold/uphold-validator.js/.github/workflows/release.yml) GitHub workflow.
+Run it by clicking the "Run workflow" button.
 
 ## License
 
