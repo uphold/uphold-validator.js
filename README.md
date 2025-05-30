@@ -8,6 +8,11 @@ Improvements over validator.js:
  - throwing specific errors on validation failures
  - mask validated data
 
+## Status
+
+[![npm version][npm-image]][npm-url]
+[![build status][tests-image]][tests-url]
+
 ## Install
 
 Add to your package.json dependencies:
@@ -110,3 +115,8 @@ $ yarn release [<newversion> | major | minor | patch]
 ## License
 
 MIT
+
+[npm-image]: https://img.shields.io/npm/v/@uphold/validator.js.svg
+[npm-url]: https://www.npmjs.com/package/@uphold/validator.js
+[tests-image]: https://github.com/uphold/uphold-validator.js/actions/workflows/tests.yaml/badge.svg?branch=master
+[tests-url]: https://github.com/uphold/uphold-validator.js/actions/workflows/tests.yaml
