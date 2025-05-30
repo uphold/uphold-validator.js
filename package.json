@@ -3,6 +3,14 @@
   "version": "2.1.0",
   "description": "Extensive validations built on top of validator.js",
   "main": "index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.js",
+      "require": "./index.js"
+    }
+  },
   "author": "Uphold",
   "license": "MIT",
   "scripts": {
