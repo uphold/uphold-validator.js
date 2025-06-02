@@ -5,12 +5,13 @@
  */
 
 const { AssertionFailedError, ValidationFailedError } = require('@uphold/http-errors');
-const validator = require('.');
-const asserts = require('validator.js-asserts');
+const { describe, it } = require('node:test');
 const _ = require('lodash');
+const asserts = require('validator.js-asserts');
+const validator = require('./index.js');
 
 /**
- * Extra asserts
+ * Extra asserts.
  */
 
 function AlwaysValid() {
@@ -40,41 +41,41 @@ function AlwaysInvalid() {
  */
 
 describe('Validator', () => {
-  it('should expose `assert`, `is` and `validate` functions', () => {
+  it('should expose `assert`, `is` and `validate` functions', test => {
     const { assert, is, validate } = validator({
       AssertionError: AssertionFailedError,
       ValidationError: ValidationFailedError
     });
 
-    expect(assert).toBeInstanceOf(Function);
-    expect(is).toBeInstanceOf(Function);
-    expect(validate).toBeInstanceOf(Function);
+    test.assert.ok(assert instanceof Function);
+    test.assert.ok(is instanceof Function);
+    test.assert.ok(validate instanceof Function);
   });
 
-  it('should expose custom asserts', () => {
+  it('should expose custom asserts', test => {
     const { is } = validator({
       AssertionError: AssertionFailedError,
       ValidationError: ValidationFailedError
     });
 
-    for (const assert in asserts) {
-      expect(is.prototype).toHaveProperty(assert);
+    for (const assertName in asserts) {
+      test.assert.deepEqual(is.prototype[assertName], asserts[assertName]);
     }
   });
 
-  it('should expose extra asserts', () => {
+  it('should expose extra asserts', test => {
     const { is } = validator({
       AssertionError: AssertionFailedError,
       ValidationError: ValidationFailedError,
       extraAsserts: { AlwaysInvalid, AlwaysValid }
     });
 
-    expect(is.prototype).toHaveProperty('AlwaysValid');
-    expect(is.prototype).toHaveProperty('AlwaysInvalid');
+    test.assert.deepEqual(is.prototype.AlwaysValid, AlwaysValid);
+    test.assert.deepEqual(is.prototype.AlwaysInvalid, AlwaysInvalid);
   });
 
   describe('assert()', () => {
-    it('should throw an error if assertion fails', () => {
+    it('should throw an error if assertion fails', test => {
       const { assert, is } = validator({
         AssertionError: AssertionFailedError,
         ValidationError: ValidationFailedError
@@ -83,16 +84,16 @@ describe('Validator', () => {
       try {
         assert({ name: 'Foo' }, { name: is.integer() });
 
-        fail();
+        test.assert.fail('Expected error to be thrown');
       } catch (e) {
-        expect(e).toBeInstanceOf(AssertionFailedError);
-        expect(e.errors.name).toHaveLength(1);
-        expect(e.errors.name[0].show().assert).toEqual('Integer');
+        test.assert.ok(e instanceof AssertionFailedError);
+        test.assert.equal(e.errors.name.length, 1);
+        test.assert.deepEqual(e.errors.name[0].show().assert, 'Integer');
       }
     });
 
-    it('should not mask data by default', () => {
-      const { is, assert } = validator({
+    it('should not mask data by default', test => {
+      const { assert, is } = validator({
         AssertionError: AssertionFailedError,
         ValidationError: ValidationFailedError
       });
@@ -110,11 +111,11 @@ describe('Validator', () => {
         }
       });
 
-      expect(assertedData).toEqual(data);
+      test.assert.deepEqual(assertedData, data);
     });
 
-    it('should mask data if `options.mask` is `true`', () => {
-      const { is, assert } = validator({
+    it('should mask data if `options.mask` is `true`', test => {
+      const { assert, is } = validator({
         AssertionError: AssertionFailedError,
         ValidationError: ValidationFailedError,
         mask: true
@@ -127,12 +128,12 @@ describe('Validator', () => {
         foo: is.required()
       });
 
-      expect(assertedData).toEqual({ foo: 'bar' });
+      test.assert.deepEqual(assertedData, { foo: 'bar' });
     });
 
-    it('should call obfuscate', () => {
-      const obfuscator = jest.fn(_.identity);
-      const { is, assert } = validator({
+    it('should call obfuscate', test => {
+      const obfuscator = test.mock.fn(_.identity);
+      const { assert, is } = validator({
         AssertionError: AssertionFailedError,
         ValidationError: ValidationFailedError,
         obfuscator
@@ -141,16 +142,16 @@ describe('Validator', () => {
       try {
         assert({}, { foo: is.required() });
 
-        fail();
+        test.assert.fail('Expected error to be thrown');
       } catch (e) {
-        expect(obfuscator).toHaveBeenCalledTimes(1);
-        expect(obfuscator).toHaveBeenCalledWith({ errors: e.errors });
+        test.assert.equal(obfuscator.mock.callCount(), 1);
+        test.assert.deepEqual(obfuscator.mock.calls[0].arguments, [{ errors: e.errors }]);
       }
     });
 
-    it('should call logger', () => {
-      const logger = jest.fn();
-      const { is, assert } = validator({
+    it('should call logger', test => {
+      const logger = test.mock.fn();
+      const { assert, is } = validator({
         AssertionError: AssertionFailedError,
         ValidationError: ValidationFailedError,
         logger
@@ -159,16 +160,16 @@ describe('Validator', () => {
       try {
         assert({}, { foo: is.required() });
 
-        fail();
+        test.assert.fail('Expected error to be thrown');
       } catch (e) {
-        expect(logger).toHaveBeenCalledTimes(1);
-        expect(logger).toHaveBeenCalledWith(e.errors);
+        test.assert.equal(logger.mock.callCount(), 1);
+        test.assert.deepEqual(logger.mock.calls[0].arguments, [e.errors]);
       }
     });
   });
 
   describe('validate()', () => {
-    it('should throw an error if validation fails', () => {
+    it('should throw an error if validation fails', test => {
       const { is, validate } = validator({
         AssertionError: AssertionFailedError,
         ValidationError: ValidationFailedError
@@ -177,15 +178,15 @@ describe('Validator', () => {
       try {
         validate({ name: 'Foo' }, { name: is.integer() });
 
-        fail();
+        test.assert.fail('Expected error to be thrown');
       } catch (e) {
-        expect(e).toBeInstanceOf(ValidationFailedError);
-        expect(e.errors.name).toHaveLength(1);
-        expect(e.errors.name[0].show().assert).toEqual('Integer');
+        test.assert.ok(e instanceof ValidationFailedError);
+        test.assert.equal(e.errors.name.length, 1);
+        test.assert.deepEqual(e.errors.name[0].show().assert, 'Integer');
       }
     });
 
-    it('should not mask data by default', () => {
+    it('should not mask data by default', test => {
       const { is, validate } = validator({
         AssertionError: AssertionFailedError,
         ValidationError: ValidationFailedError
@@ -204,10 +205,10 @@ describe('Validator', () => {
         }
       });
 
-      expect(validatedData).toEqual({ foo: { bar: 'qux', biz: 'bar' }, qux: 'biz' });
+      test.assert.deepEqual(validatedData, { foo: { bar: 'qux', biz: 'bar' }, qux: 'biz' });
     });
 
-    it('should mask data if `options.mask` is `true`', () => {
+    it('should mask data if `options.mask` is `true`', test => {
       const { is, validate } = validator({
         AssertionError: AssertionFailedError,
         ValidationError: ValidationFailedError,
@@ -221,11 +222,11 @@ describe('Validator', () => {
         foo: is.required()
       });
 
-      expect(validatedData).toEqual({ foo: 'bar' });
+      test.assert.deepEqual(validatedData, { foo: 'bar' });
     });
 
-    it('should call obfuscate', () => {
-      const obfuscator = jest.fn(_.identity);
+    it('should call obfuscate', test => {
+      const obfuscator = test.mock.fn(_.identity);
       const { is, validate } = validator({
         AssertionError: AssertionFailedError,
         ValidationError: ValidationFailedError,
@@ -235,15 +236,15 @@ describe('Validator', () => {
       try {
         validate({}, { foo: is.required() });
 
-        fail();
+        test.assert.fail('Expected error to be thrown');
       } catch (e) {
-        expect(obfuscator).toHaveBeenCalledTimes(1);
-        expect(obfuscator).toHaveBeenCalledWith({ errors: e.errors });
+        test.assert.equal(obfuscator.mock.callCount(), 1);
+        test.assert.deepEqual(obfuscator.mock.calls[0].arguments, [{ errors: e.errors }]);
       }
     });
 
-    it('should call logger', () => {
-      const logger = jest.fn();
+    it('should call logger', test => {
+      const logger = test.mock.fn();
       const { is, validate } = validator({
         AssertionError: AssertionFailedError,
         ValidationError: ValidationFailedError,
@@ -253,10 +254,10 @@ describe('Validator', () => {
       try {
         validate({}, { foo: is.required() });
 
-        fail();
+        test.assert.fail('Expected error to be thrown');
       } catch (e) {
-        expect(logger).toHaveBeenCalledTimes(1);
-        expect(logger).toHaveBeenCalledWith(e.errors);
+        test.assert.equal(logger.mock.callCount(), 1);
+        test.assert.deepEqual(logger.mock.calls[0].arguments, [e.errors]);
       }
     });
   });
