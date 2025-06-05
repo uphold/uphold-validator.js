@@ -2574,10 +2574,9 @@ url-join@5.0.0:
   resolved "https://registry.yarnpkg.com/url-join/-/url-join-5.0.0.tgz#c2f1e5cbd95fa91082a93b58a1f42fecb4bdbcf1"
   integrity sha512-n2huDr9h9yzd6exQVnH/jU5mr+Pfx08LRXXZhkLLetAMESRj+anQsTAh940iMrIetKAmry9coFuZQ2jY8/p3WA==
 
-validator.js-asserts@^7.3.1:
-  version "7.3.1"
-  resolved "https://registry.yarnpkg.com/validator.js-asserts/-/validator.js-asserts-7.3.1.tgz#ac6de9c82861ea5571b5433558b00a9708254880"
-  integrity sha512-NCKicmp9OBPVw+xgBftzlJNBlqzySCYirp3lPcXAGDuciBxf3dgK+bcjZCf90aq3+/20HbDUopxWW0h6xcrnhA==
+"validator.js-asserts@https://github.com/uphold/validator.js-asserts#support/type-declaration":
+  version "8.4.0"
+  resolved "https://github.com/uphold/validator.js-asserts#775aa905d3c7ffd8261417cc8e730f2e25693dc2"
   dependencies:
     lodash "^4.17.21"
     validator.js "^2.0.0"
