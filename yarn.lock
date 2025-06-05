@@ -2574,15 +2574,14 @@ url-join@5.0.0:
   resolved "https://registry.yarnpkg.com/url-join/-/url-join-5.0.0.tgz#c2f1e5cbd95fa91082a93b58a1f42fecb4bdbcf1"
   integrity sha512-n2huDr9h9yzd6exQVnH/jU5mr+Pfx08LRXXZhkLLetAMESRj+anQsTAh940iMrIetKAmry9coFuZQ2jY8/p3WA==
 
-validator.js-asserts@^7.3.1:
-  version "7.3.1"
-  resolved "https://registry.yarnpkg.com/validator.js-asserts/-/validator.js-asserts-7.3.1.tgz#ac6de9c82861ea5571b5433558b00a9708254880"
-  integrity sha512-NCKicmp9OBPVw+xgBftzlJNBlqzySCYirp3lPcXAGDuciBxf3dgK+bcjZCf90aq3+/20HbDUopxWW0h6xcrnhA==
+validator.js-asserts@^9.0.0:
+  version "9.0.0"
+  resolved "https://registry.yarnpkg.com/validator.js-asserts/-/validator.js-asserts-9.0.0.tgz#9d45e039ba5c683612be82bd5a27be27725d9529"
+  integrity sha512-pvUn2clKyiBrTnAmBecdveRKJ2fRrOohtsGaNLBSNzPo2Kbf5eAOB8PF8nmsuGdadYCL92eYmEepsYHUJ2tFgQ==
   dependencies:
     lodash "^4.17.21"
-    validator.js "^2.0.0"
 
-validator.js@^2.0.0, validator.js@^2.0.3:
+validator.js@^2.0.3:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/validator.js/-/validator.js-2.0.3.tgz#3f4d8ae50673f7fbd5539abd66a1338d879f5ef4"
 
