@@ -1,5 +1,16 @@
 # Changelog
 
+## [v3.0.0](https://github.com/uphold/uphold-validator.js/releases/tag/v3.0.0) (2025-07-01)
+
+- Update `validator.js-asserts` to include type declarations [\#47](https://github.com/uphold/uphold-validator.js/pull/47) ([risantos](https://github.com/risantos))
+- Fix test workflow [\#46](https://github.com/uphold/uphold-validator.js/pull/46) ([risantos](https://github.com/risantos))
+- Add type declarations [\#42](https://github.com/uphold/uphold-validator.js/pull/42) ([risantos](https://github.com/risantos))
+- Replace `uphold-scripts` [\#45](https://github.com/uphold/uphold-validator.js/pull/45) ([risantos](https://github.com/risantos))
+- Update `eslint-config-uphold@6.5.1` and `ESLint` config format [\#41](https://github.com/uphold/uphold-validator.js/pull/41) ([risantos](https://github.com/risantos))
+- Add `release-it` and release workflow [\#40](https://github.com/uphold/uphold-validator.js/pull/40) ([risantos](https://github.com/risantos))
+- Add Tests workflow and replace `jest` with `node:test` [\#44](https://github.com/uphold/uphold-validator.js/pull/44) ([risantos](https://github.com/risantos))
+- Add CODEOWNERS file [\#43](https://github.com/uphold/uphold-validator.js/pull/43) ([risantos](https://github.com/risantos))
+
 ## [2.1.0](https://github.com/uphold/uphold-validator.js/releases/tag/v2.1.0) (2022-10-12)
 - Add support for masking [\#33](https://github.com/uphold/uphold-validator.js/pull/33) ([acostalima](https://github.com/acostalima))
 
