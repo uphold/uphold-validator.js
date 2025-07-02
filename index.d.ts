@@ -56,7 +56,7 @@ type ConstraintValue =
 /**
  * All core `validator.js` assert factories.
  */
-interface CoreAssertsMap {
+interface BaseValidatorJSAsserts {
   /** Object must have the given property. */
   haveProperty(node: string): AssertInstance;
 
@@ -168,7 +168,10 @@ interface BaseAssertStatic {
  * - All built‐in `validator.js-asserts` (via `ValidatorJSAsserts`).
  * - Any user‐passed `extraAsserts` (lowercased).
  */
-type AssertStatic<EA> = BaseAssertStatic & CoreAssertsMap & ValidatorJSAsserts & ExtraAsserts<EA>;
+type AssertStatic<EA> = BaseAssertStatic &
+Omit<BaseValidatorJSAsserts, 'callback'> &
+ValidatorJSAsserts &
+ExtraAsserts<EA>;
 
 /**
  * Given a type `T`, map each key to either:
