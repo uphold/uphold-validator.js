@@ -1,5 +1,9 @@
 # Changelog
 
+## [v3.0.1](https://github.com/uphold/uphold-validator.js/releases/tag/v3.0.1) (2025-07-07)
+
+- Update `Callback` type inference [\#48](https://github.com/uphold/uphold-validator.js/pull/48) ([risantos](https://github.com/risantos))
+
 ## [v3.0.0](https://github.com/uphold/uphold-validator.js/releases/tag/v3.0.0) (2025-07-01)
 
 - Update `validator.js-asserts` to include type declarations [\#47](https://github.com/uphold/uphold-validator.js/pull/47) ([risantos](https://github.com/risantos))

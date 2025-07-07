@@ -1,6 +1,6 @@
 {
   "name": "@uphold/validator.js",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Extensive validations built on top of validator.js",
   "main": "index.js",
   "types": "./index.d.ts",
