@@ -1,5 +1,9 @@
 # Changelog
 
+## [v3.0.2](https://github.com/uphold/uphold-validator.js/releases/tag/v3.0.2) (2025-11-20)
+
+- Bump `validator.js-asserts` dependency to v10 [\#50](https://github.com/uphold/uphold-validator.js/pull/50) ([goncalvesnelson](https://github.com/goncalvesnelson))
+
 ## [v3.0.1](https://github.com/uphold/uphold-validator.js/releases/tag/v3.0.1) (2025-07-07)
 
 - Update `Callback` type inference [\#48](https://github.com/uphold/uphold-validator.js/pull/48) ([risantos](https://github.com/risantos))
