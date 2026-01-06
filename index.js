@@ -10,6 +10,12 @@ const asserts = require('validator.js-asserts');
 const maskObject = require('json-mask');
 
 /**
+ * Create default validation error function.
+ */
+
+const createDefaultValidationError = (ValidationError, obfuscated) => new ValidationError(obfuscated);
+
+/**
  * Identity function.
  */
 
@@ -46,7 +52,7 @@ function getMask(object) {
 function validate(ValidationError, logger, obfuscator, mask) {
   const validator = new Validator();
 
-  return (data, constraints) => {
+  return (data, constraints, { createValidationError = createDefaultValidationError } = {}) => {
     if (mask) {
       const keys = getMask(constraints);
 
@@ -60,7 +66,7 @@ function validate(ValidationError, logger, obfuscator, mask) {
 
       logger(obfuscated);
 
-      throw new ValidationError(obfuscated);
+      throw createValidationError(ValidationError, obfuscated);
     }
 
     return data;

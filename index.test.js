@@ -11,6 +11,22 @@ const asserts = require('validator.js-asserts');
 const validator = require('./index.js');
 
 /**
+ * `PropertiesValidationFailedError` class.
+ */
+
+class PropertiesValidationFailedError extends ValidationFailedError {
+  /**
+   * Constructor.
+   */
+
+  constructor(errors, properties = {}) {
+    super(errors);
+
+    this.properties = properties;
+  }
+}
+
+/**
  * Extra asserts.
  */
 
@@ -183,6 +199,29 @@ describe('Validator', () => {
         test.assert.ok(e instanceof ValidationFailedError);
         test.assert.equal(e.errors.name.length, 1);
         test.assert.deepEqual(e.errors.name[0].show().assert, 'Integer');
+      }
+    });
+
+    it('should throw an error if validation fails with properties', test => {
+      const { is, validate } = validator({
+        AssertionError: AssertionFailedError,
+        ValidationError: PropertiesValidationFailedError
+      });
+      const properties = { foo: 'bar' };
+
+      try {
+        validate(
+          { name: 'Foo' },
+          { name: is.integer() },
+          { createValidationError: (Error, obfuscated) => new Error(obfuscated, properties) }
+        );
+
+        test.assert.fail('Expected error to be thrown');
+      } catch (e) {
+        test.assert.ok(e instanceof PropertiesValidationFailedError);
+        test.assert.equal(e.errors.name.length, 1);
+        test.assert.deepEqual(e.errors.name[0].show().assert, 'Integer');
+        test.assert.deepEqual(e.properties, properties);
       }
     });
 
