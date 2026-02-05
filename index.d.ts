@@ -284,7 +284,24 @@ declare function validator(options?: {
 }): BaseValidatorExports<{}>;
 
 /**
- * Export `validator`.
+ * Export `validator` for ESM and CJS compatibility.
  */
+export default validator;
 
-export = validator;
+export { validator as 'module.exports' };
+export type {
+  AssertInstance,
+  ConstraintInstance,
+  ConstraintValue,
+  BaseValidatorJSAsserts,
+  BaseAssertStatic,
+  AssertStatic,
+  ValidateFunction,
+  ValidatorErrorType,
+  ConstraintMapping,
+  BaseValidatorExports,
+  ValidatorExportsWithAssert,
+  ValidatorExportsWithValidate,
+  ValidatorExportsWithBoth,
+  ExtraAsserts
+};
