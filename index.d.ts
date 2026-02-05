@@ -149,11 +149,14 @@ interface BaseValidatorJSAsserts {
  * If the user passes an object of `extraAsserts` (e.g. `{ MyFoo: () => new FooAssert() }`),
  * this type will expose each key as a lowercase method returning `AssertInstance`.
  */
-type ExtraAsserts<EA> = EA extends Record<string, any>
-  ? {
-      [K in keyof EA as Uncapitalize<string & K>]: () => AssertInstance;
-    }
-  : {};
+type ExtraAsserts<EA> =
+  EA extends Record<string, any>
+    ? {
+        [K in keyof EA as Uncapitalize<string & K>]: EA[K] extends (...args: any[]) => infer CustomAssert
+          ? { (): CustomAssert }
+          : { (): AssertInstance };
+      }
+    : {};
 
 /** Callable/newable `Assert` constructor function itself. */
 interface BaseAssertStatic {
@@ -169,9 +172,9 @@ interface BaseAssertStatic {
  * - Any user‐passed `extraAsserts` (lowercased).
  */
 type AssertStatic<EA> = BaseAssertStatic &
-Omit<BaseValidatorJSAsserts, 'callback'> &
-ValidatorJSAsserts &
-ExtraAsserts<EA>;
+  Omit<BaseValidatorJSAsserts, 'callback'> &
+  ValidatorJSAsserts &
+  ExtraAsserts<EA>;
 
 /**
  * Given a type `T`, map each key to either:
