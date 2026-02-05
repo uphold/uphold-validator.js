@@ -185,7 +185,7 @@ type ConstraintMapping<T> =
   | Record<string, ConstraintValue | ConstraintValue[]>;
 
 /** Signature of `assert(data, constraints)` or `validate(data, constraints)`. */
-type ValidateFunction = <T>(data: T, constraints: ConstraintMapping<T> | Record<string, ConstraintValue>) => T;
+type ValidateFunction = <T>(data: unknown, constraints: ConstraintMapping<T> | Record<string, ConstraintValue>) => T;
 
 /** Custom Error type for `AssertionError`/`ValidationError`. */
 type ValidatorErrorType = new (...args: any[]) => Error;
