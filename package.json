@@ -32,7 +32,7 @@
     "eslint": "~9.27.0",
     "eslint-config-uphold": "^6.5.1",
     "prettier": "^3.5.3",
-    "release-it": "^19.0.3"
+    "release-it": "^19.2.3"
   },
   "pre-commit": [
     "lint"
