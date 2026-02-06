@@ -2,12 +2,29 @@ import type { Assert as BaseAssert, Constraint as BaseConstraint } from 'validat
 import type { ValidatorJSAsserts } from 'validator.js-asserts';
 
 /**
+ * A recursive map of validation failures, keyed by property name.
+ *
+ * Returned by `Constraint.check()` when validation fails
+ * (returns `true` on success).
+ *
+ * Each property maps to:
+ *
+ * - A single `Violation` — when a property-level check (e.g., `HaveProperty`) fails.
+ * - A `Violation[]` — when one or more asserts on that property fail.
+ * - A nested `ValidationErrors` — when a nested constraint or `Collection` assert fails.
+ * @todo Add a `Violation` type.
+ */
+type ValidationErrors = {
+  [property: string]: unknown | unknown[] | ValidationErrors;
+};
+
+/**
  * The instance‐side of an Assert (no static factory methods).
  * All core “is.X()” methods and custom asserts produce this.
  */
 interface AssertInstance {
   /** Returns `true` if the value passes, otherwise returns a Violation/object. */
-  check(value: unknown, group?: string | string[], context?: unknown): true | any;
+  check(value: unknown, group?: string | string[], context?: unknown): true | ValidationErrors;
   /** Throws on failure; returns `true` if the value passes. */
   validate(value: unknown, group?: string | string[], context?: unknown): true;
   /** Does this assert apply to the given validation group(s)? */
@@ -22,29 +39,29 @@ interface AssertInstance {
 
 /**
  * The instance‐side of a Constraint (no static/constructor methods).
- * Mirrors the Assert API but for Constraint objects.
+ * Mirrors the API but for Constraint objects.
  */
 interface ConstraintInstance extends BaseConstraint {
-  /** Check if value matches the constraint */
-  check(value: unknown, group?: string | string[], context?: unknown): true | any;
-  /** Validate the value against the constraint */
+  /** Check if value matches the constraint. */
+  check(value: unknown, group?: string | string[], context?: unknown): true | ValidationErrors;
+  /** Validate the value against the constraint. */
   validate(value: unknown, group?: string | string[], context?: unknown): true;
-  /** Check if the constraint requires validation */
+  /** Check if the constraint requires validation. */
   requiresValidation(group?: string | string[]): boolean;
-  /** Check if the constraint belongs to a specific group */
+  /** Check if the constraint belongs to a specific group. */
   hasGroup(group: string | string[]): boolean;
-  /** Check `hasGroup` over the specified groups */
+  /** Check `hasGroup` over the specified groups. */
   hasOneOf(groups: string[]): boolean;
-  /** Check if the constraint has any groups */
+  /** Check if the constraint has any groups. */
   hasGroups(): boolean;
 }
 
 /**
  * Valid types that can appear in a constraint mapping:
- * - an Assert instance
- * - a Constraint instance
- * - a nested object mapping
- * - an array of any of the above
+ * - An Assert instance.
+ * - A Constraint instance.
+ * - A nested object mapping.
+ * - An array of any of the above.
  */
 type ConstraintValue =
   | BaseAssert
@@ -149,11 +166,14 @@ interface BaseValidatorJSAsserts {
  * If the user passes an object of `extraAsserts` (e.g. `{ MyFoo: () => new FooAssert() }`),
  * this type will expose each key as a lowercase method returning `AssertInstance`.
  */
-type ExtraAsserts<EA> = EA extends Record<string, any>
-  ? {
-      [K in keyof EA as Uncapitalize<string & K>]: () => AssertInstance;
-    }
-  : {};
+type ExtraAsserts<EA> =
+  EA extends Record<string, unknown>
+    ? {
+        [K in keyof EA as Uncapitalize<string & K>]: () => AssertInstance;
+      }
+    : {
+        [K in never]: never;
+      };
 
 /** Callable/newable `Assert` constructor function itself. */
 interface BaseAssertStatic {
@@ -169,9 +189,9 @@ interface BaseAssertStatic {
  * - Any user‐passed `extraAsserts` (lowercased).
  */
 type AssertStatic<EA> = BaseAssertStatic &
-Omit<BaseValidatorJSAsserts, 'callback'> &
-ValidatorJSAsserts &
-ExtraAsserts<EA>;
+  Omit<BaseValidatorJSAsserts, 'callback'> &
+  ValidatorJSAsserts &
+  ExtraAsserts<EA>;
 
 /**
  * Given a type `T`, map each key to either:
@@ -188,25 +208,52 @@ type ConstraintMapping<T> =
 type ValidateFunction = <T>(data: unknown, constraints: ConstraintMapping<T> | Record<string, ConstraintValue>) => T;
 
 /** Custom Error type for `AssertionError`/`ValidationError`. */
-type ValidatorErrorType = new (...args: any[]) => Error;
+type ValidatorErrorType = new (errors: ValidationErrors) => Error;
+
+/**
+ * A logging function called with the (potentially obfuscated) validation errors
+ * just before the error is thrown. Defaults to a no-op.
+ */
+type ValidatorLogger = (errors: ValidationErrors) => void;
+
+/**
+ * An obfuscation function that can transform/redact the `errors` map before
+ * it is passed to the logger and to the Error constructor.
+ * Must return an object with the same `{ errors }` shape.
+ * Defaults to the identity function.
+ */
+type ValidatorObfuscator = (input: { errors: ValidationErrors }) => { errors: ValidationErrors };
+
+/**
+ * Common options shared by all overloads of the `validator()` factory.
+ */
+interface ValidatorBaseOptions {
+  logger?: ValidatorLogger;
+  obfuscator?: ValidatorObfuscator;
+  mask?: boolean;
+}
 
 /** You always get an `{ is: AssertStatic<EA> }` back. */
-interface BaseValidatorExports<EA = any> {
+/* eslint-disable-next-line @typescript-eslint/no-empty-object-type */
+interface BaseValidatorExports<EA = {}> {
   is: AssertStatic<EA>;
 }
 
 /** If `AssertionError` was passed, you also get `assert(data, …)`. */
-interface ValidatorExportsWithAssert<EA = any> extends BaseValidatorExports<EA> {
+/* eslint-disable-next-line @typescript-eslint/no-empty-object-type */
+interface ValidatorExportsWithAssert<EA = {}> extends BaseValidatorExports<EA> {
   assert: ValidateFunction;
 }
 
 /** If `ValidationError` was passed, you also get `validate(data, …)`. */
-interface ValidatorExportsWithValidate<EA = any> extends BaseValidatorExports<EA> {
+/* eslint-disable-next-line @typescript-eslint/no-empty-object-type */
+interface ValidatorExportsWithValidate<EA = {}> extends BaseValidatorExports<EA> {
   validate: ValidateFunction;
 }
 
 /** If both errors were passed, you get both `assert` and `validate`. */
-interface ValidatorExportsWithBoth<EA = any> extends BaseValidatorExports<EA> {
+/* eslint-disable-next-line @typescript-eslint/no-empty-object-type */
+interface ValidatorExportsWithBoth<EA = {}> extends BaseValidatorExports<EA> {
   assert: ValidateFunction;
   validate: ValidateFunction;
 }
@@ -215,73 +262,62 @@ interface ValidatorExportsWithBoth<EA = any> extends BaseValidatorExports<EA> {
  * Create a new validator instance.
  * TypeScript will infer `EA` from the shape of `options.extraAsserts`.
  *
- * - If you supply both `AssertionError` and `ValidationError`, you get: `{ is, assert, validate }`
+ * - If you supply both `AssertionError` and `ValidationError`, you get: `{ is, assert, validate }`.
  * - If you supply only one of them, you get exactly that method plus `is`.
  * - If you supply neither, you get only `{ is }`.
  */
-declare function validator<EA extends Record<string, any>>(options: {
-  AssertionError: ValidatorErrorType;
-  ValidationError: ValidatorErrorType;
-  extraAsserts: EA;
-  logger?: (errors: any) => void;
-  obfuscator?: (input: { errors: any }) => { errors: any };
-  mask?: boolean;
-}): ValidatorExportsWithBoth<EA>;
 
-declare function validator(options: {
-  AssertionError: ValidatorErrorType;
-  ValidationError: ValidatorErrorType;
-  extraAsserts?: undefined;
-  logger?: (errors: any) => void;
-  obfuscator?: (input: { errors: any }) => { errors: any };
-  mask?: boolean;
-}): ValidatorExportsWithBoth<{}>;
+declare function validator<EA extends Record<string, unknown>>(
+  options: {
+    AssertionError: ValidatorErrorType;
+    ValidationError: ValidatorErrorType;
+    extraAsserts: EA;
+  } & ValidatorBaseOptions
+): ValidatorExportsWithBoth<EA>;
 
-declare function validator<EA extends Record<string, any>>(options: {
-  AssertionError: ValidatorErrorType;
-  extraAsserts: EA;
-  logger?: (errors: any) => void;
-  obfuscator?: (input: { errors: any }) => { errors: any };
-  mask?: boolean;
-}): ValidatorExportsWithAssert<EA>;
+declare function validator(
+  options: {
+    AssertionError: ValidatorErrorType;
+    ValidationError: ValidatorErrorType;
+    extraAsserts?: undefined;
+  } & ValidatorBaseOptions
+): ValidatorExportsWithBoth;
 
-declare function validator(options: {
-  AssertionError: ValidatorErrorType;
-  extraAsserts?: undefined;
-  logger?: (errors: any) => void;
-  obfuscator?: (input: { errors: any }) => { errors: any };
-  mask?: boolean;
-}): ValidatorExportsWithAssert<{}>;
+declare function validator<EA extends Record<string, unknown>>(
+  options: {
+    AssertionError: ValidatorErrorType;
+    extraAsserts: EA;
+  } & ValidatorBaseOptions
+): ValidatorExportsWithAssert<EA>;
 
-declare function validator<EA extends Record<string, any>>(options: {
-  ValidationError: ValidatorErrorType;
-  extraAsserts: EA;
-  logger?: (errors: any) => void;
-  obfuscator?: (input: { errors: any }) => { errors: any };
-  mask?: boolean;
-}): ValidatorExportsWithValidate<EA>;
+declare function validator(
+  options: {
+    AssertionError: ValidatorErrorType;
+    extraAsserts?: undefined;
+  } & ValidatorBaseOptions
+): ValidatorExportsWithAssert;
 
-declare function validator(options: {
-  ValidationError: ValidatorErrorType;
-  extraAsserts?: undefined;
-  logger?: (errors: any) => void;
-  obfuscator?: (input: { errors: any }) => { errors: any };
-  mask?: boolean;
-}): ValidatorExportsWithValidate<{}>;
+declare function validator<EA extends Record<string, unknown>>(
+  options: {
+    ValidationError: ValidatorErrorType;
+    extraAsserts: EA;
+  } & ValidatorBaseOptions
+): ValidatorExportsWithValidate<EA>;
 
-declare function validator<EA extends Record<string, any>>(options?: {
-  extraAsserts: EA;
-  logger?: (errors: any) => void;
-  obfuscator?: (input: { errors: any }) => { errors: any };
-  mask?: boolean;
-}): BaseValidatorExports<EA>;
+declare function validator(
+  options: {
+    ValidationError: ValidatorErrorType;
+    extraAsserts?: undefined;
+  } & ValidatorBaseOptions
+): ValidatorExportsWithValidate;
 
-declare function validator(options?: {
-  extraAsserts?: undefined;
-  logger?: (errors: any) => void;
-  obfuscator?: (input: { errors: any }) => { errors: any };
-  mask?: boolean;
-}): BaseValidatorExports<{}>;
+declare function validator<EA extends Record<string, unknown>>(
+  options: {
+    extraAsserts: EA;
+  } & ValidatorBaseOptions
+): BaseValidatorExports<EA>;
+
+declare function validator(options?: ValidatorBaseOptions): BaseValidatorExports;
 
 /**
  * Export `validator`.
