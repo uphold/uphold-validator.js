@@ -234,6 +234,74 @@ interface AssertInstance {
 }
 
 /**
+ * Helper type for typing the `this` context inside a custom assert factory.
+ *
+ * Use this as the `this` parameter type in TypeScript assert functions.
+ * For JavaScript projects, you can either:
+ * - Add a companion `.d.ts` file declaring your assert's signature.
+ * - Use a JSDoc `@this` tag:
+ *   `@this {import('@uphold/validator.js').CustomAssertThis<'Name'>}`.
+ *
+ * The `ClassName` generic should match both:
+ * 1. The value assigned to `this.__class__` inside the assert body.
+ * 2. The PascalCase key used when registering via `extraAsserts`.
+ *
+ * When registered, the key is `Uncapitalize`d for the `is` method
+ * (e.g., `{ ReasonDetails }` → `is.reasonDetails()`).
+ *
+ * Unlike `AssertInstance`, the `__class__` property is writable here,
+ * allowing assignment inside the factory function body.
+ *
+ * @template ClassName - The assert's `__class__` string (e.g., `'ReasonDetails'`).
+ *
+ * @example TypeScript custom assert:
+ * ```ts
+ * import type { CustomAssertThis } from '@uphold/validator.js';
+ * import { Violation } from 'validator.js';
+ *
+ * function ReasonDetails(
+ *   this: CustomAssertThis<'ReasonDetails'>,
+ *   analysis: TransactionAnalysis
+ * ) {
+ *   this.__class__ = 'ReasonDetails';
+ *   this.validate = (value: unknown) => {
+ *     if (!isValid(value)) throw new Violation(this, value);
+ *     return true;
+ *   };
+ *   return this;
+ * }
+ *
+ * const { is } = validator({ extraAsserts: { ReasonDetails } });
+ * is.reasonDetails(analysis);           // Parameter typed as TransactionAnalysis
+ * is.reasonDetails(analysis).__class__; // Narrowed to 'ReasonDetails'
+ * ```
+ *
+ * @example JavaScript companion .d.ts for a custom assert:
+ * ```ts
+ * // node-assert.d.ts
+ * import type { CustomAssertThis } from '@uphold/validator.js';
+ * declare function NodeAssert(this: CustomAssertThis<'Node'>): CustomAssertThis<'Node'>;
+ * export = NodeAssert;
+ * ```
+ */
+type CustomAssertThis<ClassName extends string = string> = Omit<AssertInstance, '__class__' | 'validate' | 'check'> & {
+  /** The assert's class name — writable during construction, readonly after. */
+  __class__: ClassName;
+
+  /**
+   * Validation function — assign your implementation inside the factory body.
+   * Accepts any signature; the framework calls it as `(value, group?, context?)`.
+   */
+  validate: (value: unknown, ...args: unknown[]) => true | boolean;
+
+  /**
+   * Check function — typically inherited from the base Assert and not overridden,
+   * but writable here for flexibility.
+   */
+  check: (value: unknown, ...args: unknown[]) => true | Violation;
+};
+
+/**
  * The instance‐side of a Constraint.
  *
  * A Constraint is a named map of property → Assert(s) or nested Constraint.
@@ -446,20 +514,32 @@ interface BaseValidatorJSAsserts {
 }
 
 /**
- * Maps user-supplied extra asserts (e.g., `{ MyFoo: () => new FooAssert() }`)
- * to lowercased method names returning `AssertInstance`.
+ * Maps user-supplied extra asserts to `Uncapitalize`d method names on `is`.
  *
  * The `_prettify` function in `validator.js` converts `PascalCase` prototype
  * methods to `camelCase` static methods, so `AlwaysValid` becomes `is.alwaysValid()`.
  *
- * If the extra assert is a function, its parameter types are preserved.
+ * - Function parameter types are preserved from the assert factory signature.
+ * - The `__class__` property is narrowed to the PascalCase key name.
+ * - TypeScript `this` parameters are automatically stripped from the signature.
+ *
+ * @example
+ * ```ts
+ * const { is } = validator({
+ *   extraAsserts: { ReasonDetails, Node: NodeAssert }
+ * });
+ *
+ * is.reasonDetails(analysis);           // Parameter type inferred
+ * is.reasonDetails(analysis).__class__; // Narrowed to 'ReasonDetails'
+ * is.node().__class__;                  // Narrowed to 'Node'
+ * ```
  */
 type ExtraAsserts<EA> =
   EA extends Record<string, unknown>
     ? {
         [K in keyof EA as Uncapitalize<string & K>]: EA[K] extends (...args: infer A) => unknown
-          ? (...args: A) => AssertInstance
-          : () => AssertInstance;
+          ? (...args: A) => AssertInstance & { readonly __class__: string & K }
+          : () => AssertInstance & { readonly __class__: string & K };
       }
     : Record<string, never>;
 
@@ -483,7 +563,7 @@ interface BaseAssertStatic {
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type AssertStatic<EA = {}> = BaseAssertStatic &
   Omit<BaseValidatorJSAsserts, 'callback'> &
-  ValidatorJSAsserts &
+  ValidatorJSAsserts<AssertInstance> &
   ExtraAsserts<EA>;
 
 /**
@@ -689,46 +769,53 @@ declare function validator(options?: ValidatorBaseOptions): BaseValidatorExports
 export = validator;
 
 /**
- * Re-export all types for external use (e.g., by consumers writing custom asserts.
+ * Re-export all types for external use.
+ *
+ * Attached to the `validator` namespace so they are accessible
+ * from CJS consumers via `import type { ... } from '@uphold/validator.js'`
+ * without conflicting with `export =`.
  */
-
-export type {
-  /** Any assert class name (core or custom). */
-  AssertClassName,
-  /** The instance produced by assert factories like `is.required()`. */
-  AssertInstance,
-  /** The static assert class like `is`. */
-  AssertStatic,
-  /** Base exports (just `is`). */
-  BaseValidatorExports,
-  /** The instance produced by `new Constraint(mapping)`. */
-  ConstraintInstance,
-  /** The constraint mapping passed to `validate()` / `assert()`. */
-  ConstraintMapping,
-  /** A value in a constraint mapping — Assert, Assert[], Constraint, or nested mapping. */
-  ConstraintValue,
-  /** Known core assert class names from `validator.js`. */
-  CoreAssertClassName,
-  /** Signature of the `validate()` and `assert()` functions. */
-  ValidateFunction,
-  /** Recursive map of validation failures keyed by property name. */
-  ValidationErrors,
-  /** Common validator options. */
-  ValidatorBaseOptions,
-  /** An Error constructor accepting `ValidationErrors`. */
-  ValidatorErrorType,
-  /** Exports when both error types are provided. */
-  ValidatorExportsWithBoth,
-  /** Exports when only AssertionError is provided. */
-  ValidatorExportsWithAssert,
-  /** Exports when only ValidationError is provided. */
-  ValidatorExportsWithValidate,
-  /** Logger callback type. */
-  ValidatorLogger,
-  /** Obfuscator callback type. */
-  ValidatorObfuscator,
-  /** A single validation violation — returned by `Assert.check()` on failure. */
-  Violation,
-  /** The plain-object summary from `Violation.show()`. */
-  ViolationShow
-};
+declare namespace validator {
+  export {
+    /** Any assert class name (core or custom). */
+    AssertClassName,
+    /** The instance produced by assert factories like `is.required()`. */
+    AssertInstance,
+    /** The static assert class like `is`. */
+    AssertStatic,
+    /** Base exports (just `is`). */
+    BaseValidatorExports,
+    /** The instance produced by `new Constraint(mapping)`. */
+    ConstraintInstance,
+    /** The constraint mapping passed to `validate()` / `assert()`. */
+    ConstraintMapping,
+    /** A value in a constraint mapping — Assert, Assert[], Constraint, or nested mapping. */
+    ConstraintValue,
+    /** Known core assert class names from `validator.js`. */
+    CoreAssertClassName,
+    /** Helper for typing `this` inside custom assert factory functions. */
+    CustomAssertThis,
+    /** Signature of the `validate()` and `assert()` functions. */
+    ValidateFunction,
+    /** Recursive map of validation failures keyed by property name. */
+    ValidationErrors,
+    /** Common validator options. */
+    ValidatorBaseOptions,
+    /** An Error constructor accepting `ValidationErrors`. */
+    ValidatorErrorType,
+    /** Exports when both error types are provided. */
+    ValidatorExportsWithBoth,
+    /** Exports when only AssertionError is provided. */
+    ValidatorExportsWithAssert,
+    /** Exports when only ValidationError is provided. */
+    ValidatorExportsWithValidate,
+    /** Logger callback type. */
+    ValidatorLogger,
+    /** Obfuscator callback type. */
+    ValidatorObfuscator,
+    /** A single validation violation — returned by `Assert.check()` on failure. */
+    Violation,
+    /** The plain-object summary from `Violation.show()`. */
+    ViolationShow
+  };
+}
