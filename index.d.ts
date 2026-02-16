@@ -359,34 +359,164 @@ interface ConstraintInstance {
 type ConstraintValue = AssertInstance | AssertInstance[] | ConstraintInstance | { [key: string]: ConstraintValue };
 
 /**
+ * Converts a union type to an intersection via contravariant inference.
+ *
+ * @example
+ * ```ts
+ * UnionToIntersection<{} | string>  // => {} & string => string
+ * UnionToIntersection<string | number>  // => string & number => never
+ * ```
+ */
+type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
+
+/**
+ * Extracts the phantom `__type__` brand from a constraint value.
+ *
+ * Branch evaluation order (first match wins):
+ *
+ * 1. **Phantom brand** — value has `__type__`, extract `T`.
+ * 2. **Array of asserts** — extract each element's `__type__`, intersect via `UnionToIntersection`.
+ *    This handles `[is.required(), is.string()]` → `{} & string` → `string`.
+ * 3. **`ConstraintInstance`** — pre-built constraint, type is `Record<string, unknown>`.
+ * 4. **Bare `AssertInstance`** — no phantom brand, falls back to `unknown`.
+ * 5. **Nested object** — recurse into each property.
+ * 6. **Fallback** — `unknown`.
+ */
+type InferFromConstraintValue<V> = V extends { readonly __type__: infer T }
+  ? T
+  : V extends readonly (infer E)[]
+    ? UnionToIntersection<InferFromConstraintValue<E>>
+    : V extends { readonly __class__: 'Constraint' }
+      ? Record<string, unknown>
+      : V extends { readonly __parentClass__: 'Assert' }
+        ? unknown
+        : V extends Record<string, ConstraintValue>
+          ? { [K in keyof V]: InferFromConstraintValue<V[K]> }
+          : unknown;
+
+/**
+ * Force TypeScript to eagerly evaluate/distribute a type, stripping `readonly` modifiers.
+ *
+ * This helper prevents type aliases from being preserved in their nominal form,
+ * forcing structural resolution for type equality checks. The `-readonly` modifier
+ * removes readonly from properties added by the `const` type parameter.
+ *
+ * Recursively evaluates nested objects.
+ */
+type Evaluate<T> = T extends infer O
+  ? { -readonly [K in keyof O]: O[K] extends Record<string, unknown> ? Evaluate<O[K]> : O[K] }
+  : never;
+
+/**
+ * Infers the full validated type from a constraint mapping.
+ *
+ * Given a constraints object like:
+ * ```ts
+ * { name: [is.required(), is.string()], age: is.integer() }
+ * ```
+ * Produces: `{ name: string; age: number }`.
+ *
+ * @template C - The constraint mapping object type.
+ */
+type InferValidatedType<C extends Record<string, ConstraintValue>> = Evaluate<{
+  [K in keyof C]: InferFromConstraintValue<C[K]>;
+}>;
+
+/**
+ * Applies the phantom `__type__` narrowing from a single constraint to the original property type.
+ *
+ * Uses **intersection** (`Original & Phantom`) so that:
+ *
+ * - `is.string()` (`__type__: string`): `(string | undefined) & string` → `string`.
+ * - `is.required()` (`__type__: {}`): `(string | undefined) & {}` → `string`.
+ * - `is.integer()` (`__type__: number`): `(number | undefined) & number` → `number`.
+ *
+ * For arrays of asserts, extracts and intersects all phantom types via `UnionToIntersection`.
+ * For nested object constraints, recurses into sub-properties.
+ *
+ * Branch evaluation order (first match wins):
+ *
+ * 1. **Single assert with phantom brand** — intersect `Original & T`.
+ * 2. **Array of asserts** — extract each element's `__type__`, intersect all via `UnionToIntersection`.
+ * 3. **`ConstraintInstance`** — pre-built constraint, no narrowing (returns `Original`).
+ * 4. **Bare `AssertInstance`** — no phantom brand, no narrowing (returns `Original`).
+ * 5. **Nested object** — recurse into sub-properties via `NarrowByConstraints`.
+ * 6. **Fallback** — returns `Original` unchanged.
+ */
+type ApplyNarrowing<Original, Constraint> = Constraint extends { readonly __type__: infer N }
+  ? Original & N
+  : Constraint extends readonly (infer E)[]
+    ? Original & UnionToIntersection<E extends { readonly __type__: infer N } ? N : unknown>
+    : Constraint extends { readonly __class__: 'Constraint' }
+      ? Original
+      : Constraint extends { readonly __parentClass__: 'Assert' }
+        ? Original
+        : Constraint extends Record<string, ConstraintValue>
+          ? Original extends Record<string, unknown>
+            ? NarrowByConstraints<Original, Constraint>
+            : Original
+          : Original;
+
+/**
+ * Narrows each property of `T` based on the constraint mapping `C`.
+ *
+ * For each key in `T` that also exists in `C`, applies `ApplyNarrowing`
+ * to intersect the original property type with the constraint's phantom brand.
+ * Keys not present in `C` retain their original type unchanged.
+ *
+ * Falls through to `T` unchanged when `T` is `any` (detected via `0 extends 1 & T`).
+ *
+ * @template T - The original data type (e.g., a domain entity).
+ * @template C - The constraint mapping with phantom `__type__` brands.
+ *
+ * @example
+ * ```ts
+ * type Original = { name: string | undefined; age: number | undefined };
+ * type Constraints = { name: AssertInstance & { __type__: string }; age: AssertInstance & { __type__: number } };
+ * type Result = NarrowByConstraints<Original, Constraints>;
+ * // => { name: string; age: number }
+ * ```
+ */
+
+type NarrowByConstraints<T, C> = 0 extends 1 & T
+  ? T
+  : Evaluate<{ [K in keyof T]: K extends keyof C ? ApplyNarrowing<T[K], C[K]> : T[K] }>;
+
+/**
  * All core `validator.js` assert factories.
  *
  * These are the built-in asserts from the `validator.js` library,
  * exposed as camelCase methods on `is` (e.g., `is.haveProperty('foo')`).
+ *
+ * Each method's return type includes a phantom `__type__` brand that carries
+ * the validated type through the type system for automatic return type inference.
  */
 interface BaseValidatorJSAsserts {
   /** Object must have the given property. Throws `HaveProperty` violation if missing. */
-  haveProperty(node: string): AssertInstance;
+  haveProperty(node: string): AssertInstance & { readonly __type__: unknown };
 
   /** Alias for `haveProperty`. */
-  propertyDefined(node: string): AssertInstance;
+  propertyDefined(node: string): AssertInstance & { readonly __type__: unknown };
 
   /** String must be empty or contain only whitespace. Throws `Blank` violation otherwise. */
-  blank(): AssertInstance;
+  blank(): AssertInstance & { readonly __type__: string };
 
   /**
    * Run a custom callback function that returns `true` on success.
    * Additional arguments are forwarded to the callback after the value.
    * Throws `Callback` violation with `{ result }` or `{ error }` on failure.
    */
-  callback(fn: (value: unknown, ...args: unknown[]) => boolean, ...args: unknown[]): AssertInstance;
+  callback(
+    fn: (value: unknown, ...args: unknown[]) => boolean,
+    ...args: unknown[]
+  ): AssertInstance & { readonly __type__: unknown };
 
   /**
    * Value must be one of the supplied choices.
    * Accepts a static array or a function returning an array.
    * Throws `Choice` violation with `{ choices: [...] }` on failure.
    */
-  choice(list: unknown[] | (() => unknown[])): AssertInstance;
+  choice(list: unknown[] | (() => unknown[])): AssertInstance & { readonly __type__: unknown };
 
   /**
    * Each element of an array must pass the given Assert or Constraint.
@@ -396,105 +526,113 @@ interface BaseValidatorJSAsserts {
    */
   collection(
     assertOrConstraint: AssertInstance | ConstraintInstance | { [key: string]: ConstraintValue }
-  ): AssertInstance;
+  ): AssertInstance & { readonly __type__: unknown[] };
 
   /**
    * Array must have exactly `count` items.
    * Accepts a number or a function that computes the expected count from the array.
    * Throws `Count` violation with `{ count }` on failure.
    */
-  count(count: number | ((arr: unknown[]) => number)): AssertInstance;
+  count(count: number | ((arr: unknown[]) => number)): AssertInstance & { readonly __type__: unknown[] };
 
   /** Valid email address (regex-based). Throws `Email` violation on failure. */
-  email(): AssertInstance;
+  email(): AssertInstance & { readonly __type__: string };
 
   /**
    * Value must equal the reference value.
    * Accepts a static value or a function that computes the expected value.
    * Throws `EqualTo` violation with `{ value: reference }` on failure.
    */
-  equalTo(reference: unknown | ((value: unknown) => unknown)): AssertInstance;
+  equalTo(reference: unknown | ((value: unknown) => unknown)): AssertInstance & { readonly __type__: unknown };
 
   /**
    * Numeric value must be strictly greater than the threshold.
    * Throws `GreaterThan` violation with `{ threshold }` on failure.
    */
-  greaterThan(threshold: number): AssertInstance;
+  greaterThan(threshold: number): AssertInstance & { readonly __type__: number };
 
   /**
    * Numeric value must be greater than or equal to the threshold.
    * Throws `GreaterThanOrEqual` violation with `{ threshold }` on failure.
    */
-  greaterThanOrEqual(threshold: number): AssertInstance;
+  greaterThanOrEqual(threshold: number): AssertInstance & { readonly __type__: number };
 
   /**
    * Value must be an `instanceof` the specified class.
    * Throws `InstanceOf` violation with `{ classRef }` on failure.
    */
-  instanceOf(classRef: new (...args: unknown[]) => unknown): AssertInstance;
+  instanceOf(classRef: new (...args: unknown[]) => unknown): AssertInstance & { readonly __type__: unknown };
 
   /** Value must be a string. Throws `IsString` violation on failure. */
-  string(): AssertInstance;
+  string(): AssertInstance & { readonly __type__: string };
 
   /**
    * String or array length must be within the given `[min, max]` boundaries.
    * At least one of `min` or `max` must be specified.
    * Throws `Length` violation with `{ min }` and/or `{ max }` on failure.
    */
-  length(boundaries: { min?: number; max?: number }): AssertInstance;
+  length(boundaries: { min?: number; max?: number }): AssertInstance & { readonly __type__: string | unknown[] };
 
   /** Alias for `length()`. */
-  ofLength(boundaries: { min?: number; max?: number }): AssertInstance;
+  ofLength(boundaries: { min?: number; max?: number }): AssertInstance & { readonly __type__: string | unknown[] };
 
   /**
    * Numeric value must be strictly less than the threshold.
    * Throws `LessThan` violation with `{ threshold }` on failure.
    */
-  lessThan(threshold: number): AssertInstance;
+  lessThan(threshold: number): AssertInstance & { readonly __type__: number };
 
   /**
    * Numeric value must be less than or equal to the threshold.
    * Throws `LessThanOrEqual` violation with `{ threshold }` on failure.
    */
-  lessThanOrEqual(threshold: number): AssertInstance;
+  lessThanOrEqual(threshold: number): AssertInstance & { readonly __type__: number };
 
   /** Value must not be `null` or `undefined`. Throws `NotNull` violation on failure. */
-  notNull(): AssertInstance;
+  /* eslint-disable-next-line @typescript-eslint/no-empty-object-type */
+  notNull(): AssertInstance & { readonly __type__: {} };
 
   /** String must contain at least one non-whitespace character. Throws `NotBlank` violation on failure. */
-  notBlank(): AssertInstance;
+  notBlank(): AssertInstance & { readonly __type__: string };
 
   /**
    * Value must not equal the reference.
    * Accepts a static value or a function that computes the reference.
    * Throws `NotEqualTo` violation with `{ value: reference }` on failure.
    */
-  notEqualTo(reference: unknown | ((value: unknown) => unknown)): AssertInstance;
+  notEqualTo(reference: unknown | ((value: unknown) => unknown)): AssertInstance & { readonly __type__: unknown };
 
   /** Value must be exactly `null`. Throws `Null` violation on failure. */
-  null(): AssertInstance;
+  null(): AssertInstance & { readonly __type__: null };
 
   /**
    * Number, string, or array must lie within `[min, max]`.
    * For strings/arrays, validates length; for numbers, validates the value itself.
    * Throws `Range` violation on failure.
    */
-  range(min: number, max: number): AssertInstance;
+  range(min: number, max: number): AssertInstance & { readonly __type__: number | string | unknown[] };
 
   /**
    * String must match the given regular expression.
    * Throws `Regexp` violation with `{ regexp, flag }` on failure.
    */
-  regexp(regexp: string | RegExp, flag?: string): AssertInstance;
+  regexp(regexp: string | RegExp, flag?: string): AssertInstance & { readonly __type__: string };
 
-  /** Value must be defined (not `undefined`). Throws `Required` violation on failure. */
-  required(): AssertInstance;
+  /**
+   * Value must be defined (not `undefined`). Throws `Required` violation on failure.
+   *
+   * Phantom type is `{}` (non-null non-undefined) rather than `unknown` to prevent
+   * union collapse in arrays: `UnionToIntersection<{} | string>` = `string`,
+   * whereas `UnionToIntersection<unknown>` = `unknown`.
+   */
+  /* eslint-disable-next-line @typescript-eslint/no-empty-object-type */
+  required(): AssertInstance & { readonly __type__: {} };
 
   /**
    * Array items must be unique (optionally compared by a `key` property on each element).
    * Throws `Unique` violation with `{ value }` on failure.
    */
-  unique(opts?: { key: string }): AssertInstance;
+  unique(opts?: { key: string }): AssertInstance & { readonly __type__: unknown[] };
 
   /**
    * Conditional assert: if `context[ref]` satisfies `options.is`, run `options.then`;
@@ -510,7 +648,174 @@ interface BaseValidatorJSAsserts {
       then?: ConstraintValue;
       otherwise?: ConstraintValue;
     }
-  ): AssertInstance;
+  ): AssertInstance & { readonly __type__: unknown };
+}
+
+/**
+ * Type narrowing overrides for all `validator.js-asserts` methods.
+ *
+ * These override the return types from `ValidatorJSAsserts<AssertInstance>` to include
+ * phantom `__type__` brands for automatic return type inference by `NarrowByConstraints`.
+ *
+ * Methods listed here have their original signatures from `ValidatorJSAsserts` replaced
+ * in `AssertStatic` via `Omit` + intersection, so the phantom brand takes effect
+ * when the assert is used inside a constraint mapping.
+ */
+interface NarrowingValidatorJSAsserts {
+  /** Value is a boolean. Narrows to `boolean`. */
+  boolean(): AssertInstance & { readonly __type__: boolean };
+
+  /** Valid integer. Narrows to `number`. */
+  integer(): AssertInstance & { readonly __type__: number };
+
+  /** Valid email address (extended). Narrows to `string`. */
+  email(): AssertInstance & { readonly __type__: string };
+
+  /** Value is an IP address. Narrows to `string`. */
+  ip(): AssertInstance & { readonly __type__: string };
+
+  /** Value is a JSON string. Narrows to `string`. */
+  json(): AssertInstance & { readonly __type__: string };
+
+  /** Value is a plain object. Narrows to `Record<string, unknown>`. */
+  plainObject(): AssertInstance & { readonly __type__: Record<string, unknown> };
+
+  /** Valid UUID. Narrows to `string`. */
+  uuid(version?: '3' | '4' | '5' | '7' | 'max' | 'nil'): AssertInstance & { readonly __type__: string };
+
+  /** Value is not empty. Narrows to `{}` (non-nullish). */
+  /* eslint-disable-next-line @typescript-eslint/no-empty-object-type */
+  notEmpty(): AssertInstance & { readonly __type__: {} };
+
+  /** Value is null or a boolean. Narrows to `boolean | null`. */
+  nullOrBoolean(): AssertInstance & { readonly __type__: boolean | null };
+
+  /** Value is null or a string. Narrows to `string | null`. */
+  nullOrString(boundaries?: { min?: number; max?: number }): AssertInstance & { readonly __type__: string | null };
+
+  /** Valid hash string. Narrows to `string`. */
+  hash(algorithm: 'sha1' | 'sha256' | 'sha512'): AssertInstance & { readonly __type__: string };
+
+  /** Valid Canadian ZIP code. Narrows to `string`. */
+  caZipCode(): AssertInstance & { readonly __type__: string };
+
+  /** Valid US ZIP code. Narrows to `string`. */
+  usZipCode(): AssertInstance & { readonly __type__: string };
+
+  /** Valid credit card number. Narrows to `string`. */
+  creditCard(): AssertInstance & { readonly __type__: string };
+
+  /** Valid CPF number. Narrows to `string`. */
+  cpfNumber(): AssertInstance & { readonly __type__: string };
+
+  /** Valid CURP number. Narrows to `string`. */
+  curpNumber(): AssertInstance & { readonly __type__: string };
+
+  /** Valid RFC number. Narrows to `string`. */
+  rfcNumber(): AssertInstance & { readonly __type__: string };
+
+  /** Valid ABA routing number. Narrows to `string`. */
+  abaRoutingNumber(): AssertInstance & { readonly __type__: string };
+
+  /** Valid BIC code. Narrows to `string`. */
+  bankIdentifierCode(): AssertInstance & { readonly __type__: string };
+
+  /** Valid IBAN. Narrows to `string`. */
+  internationalBankAccountNumber(): AssertInstance & { readonly __type__: string };
+
+  /** Valid ISO 3166 country code. Narrows to `string`. */
+  iso3166Country(): AssertInstance & { readonly __type__: string };
+
+  /** Valid TIN. Narrows to `string`. */
+  taxpayerIdentificationNumber(): AssertInstance & { readonly __type__: string };
+
+  /** Valid phone number. Narrows to `string`. */
+  phone(options?: { countryCode?: string }): AssertInstance & { readonly __type__: string };
+
+  /** Valid URI. Narrows to `string`. */
+  uri(constraints?: Record<string, unknown>): AssertInstance & { readonly __type__: string };
+
+  /** Valid US subdivision code. Narrows to `string`. */
+  usSubdivision(options?: { categories?: string[]; alpha2Only?: boolean }): AssertInstance & {
+    readonly __type__: string;
+  };
+
+  /** Run a custom callback function with class name. No narrowing. */
+  callback(fn: (value: unknown) => boolean, customClass: string): AssertInstance & { readonly __type__: unknown };
+
+  /** Valid `BigNumber`. Narrows to `string | number`. */
+  bigNumber(options?: { validateSignificantDigits?: boolean }): AssertInstance & {
+    readonly __type__: string | number;
+  };
+
+  /** `BigNumber` equal to the given value. Narrows to `string | number`. */
+  bigNumberEqualTo(
+    value: string | number,
+    options?: { validateSignificantDigits?: boolean }
+  ): AssertInstance & { readonly __type__: string | number };
+
+  /** `BigNumber` > threshold. Narrows to `string | number`. */
+  bigNumberGreaterThan(
+    threshold: string | number,
+    options?: { validateSignificantDigits?: boolean }
+  ): AssertInstance & { readonly __type__: string | number };
+
+  /** `BigNumber` ≥ threshold. Narrows to `string | number`. */
+  bigNumberGreaterThanOrEqualTo(
+    threshold: string | number,
+    options?: { validateSignificantDigits?: boolean }
+  ): AssertInstance & { readonly __type__: string | number };
+
+  /** `BigNumber` < threshold. Narrows to `string | number`. */
+  bigNumberLessThan(
+    threshold: string | number,
+    options?: { validateSignificantDigits?: boolean }
+  ): AssertInstance & { readonly __type__: string | number };
+
+  /** `BigNumber` ≤ threshold. Narrows to `string | number`. */
+  bigNumberLessThanOrEqualTo(
+    threshold: string | number,
+    options?: { validateSignificantDigits?: boolean }
+  ): AssertInstance & { readonly __type__: string | number };
+
+  /** Valid date (with optional format). Narrows to `string | Date`. */
+  date(options?: { format?: string }): AssertInstance & { readonly __type__: string | Date };
+
+  /** Date difference > threshold. Narrows to `string | Date`. */
+  dateDiffGreaterThan(
+    threshold: number,
+    options?: { absolute?: boolean; asFloat?: boolean; fromDate?: Date | string | null; unit?: string }
+  ): AssertInstance & { readonly __type__: string | Date };
+
+  /** Date difference ≥ threshold. Narrows to `string | Date`. */
+  dateDiffGreaterThanOrEqualTo(
+    threshold: number,
+    options?: { absolute?: boolean; asFloat?: boolean; fromDate?: Date | string | null; unit?: string }
+  ): AssertInstance & { readonly __type__: string | Date };
+
+  /** Date difference < threshold. Narrows to `string | Date`. */
+  dateDiffLessThan(
+    threshold: number,
+    options?: { absolute?: boolean; asFloat?: boolean; fromDate?: Date | string | null; unit?: string }
+  ): AssertInstance & { readonly __type__: string | Date };
+
+  /** Date difference ≤ threshold. Narrows to `string | Date`. */
+  dateDiffLessThanOrEqualTo(
+    threshold: number,
+    options?: { absolute?: boolean; asFloat?: boolean; fromDate?: Date | string | null; unit?: string }
+  ): AssertInstance & { readonly __type__: string | Date };
+
+  /** Value is null or a date. Narrows to `Date | null`. */
+  nullOrDate(): AssertInstance & { readonly __type__: Date | null };
+
+  /** Value is null or passes the provided assert. No narrowing (runtime-only). */
+  nullOr(assert: AssertInstance): AssertInstance & { readonly __type__: unknown };
+
+  /** Object has exactly the specified keys. Narrows to `Record<string, unknown>`. */
+  equalKeys(...keys: string[] | [string[]]): AssertInstance & { readonly __type__: Record<string, unknown> };
+
+  /** Valid UK bank account with modulus checking. Narrows to `string`. */
+  ukModulusChecking(): AssertInstance & { readonly __type__: string };
 }
 
 /**
@@ -538,8 +843,8 @@ type ExtraAsserts<EA> =
   EA extends Record<string, unknown>
     ? {
         [K in keyof EA as Uncapitalize<string & K>]: EA[K] extends (...args: infer A) => unknown
-          ? (...args: A) => AssertInstance & { readonly __class__: string & K }
-          : () => AssertInstance & { readonly __class__: string & K };
+          ? (...args: A) => AssertInstance & { readonly __class__: string & K } & { readonly __type__: unknown }
+          : () => AssertInstance & { readonly __class__: string & K } & { readonly __type__: unknown };
       }
     : Record<string, never>;
 
@@ -563,7 +868,8 @@ interface BaseAssertStatic {
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type AssertStatic<EA = {}> = BaseAssertStatic &
   Omit<BaseValidatorJSAsserts, 'callback'> &
-  ValidatorJSAsserts<AssertInstance> &
+  Omit<ValidatorJSAsserts<AssertInstance>, keyof NarrowingValidatorJSAsserts> &
+  NarrowingValidatorJSAsserts &
   ExtraAsserts<EA>;
 
 /**
@@ -590,13 +896,59 @@ type ConstraintMapping<T = Record<string, unknown>> =
 /**
  * Signature of `assert(data, constraints)` and `validate(data, constraints)`.
  *
+ * Two overloads:
+ *
+ * 1. **Inferred** (default) — phantom `__type__` brands on each assert are extracted
+ *    and composed into the return type automatically. Uses `const` type parameter
+ *    to preserve the narrow constraint types.
+ *
+ * 2. **Explicit `<T>`** — backward-compatible overload for callers that provide an
+ *    explicit type parameter: `validate<User>(data, constraints)`.
+ *
  * - On success, returns the original `data` (or masked subset when `mask: true`).
  * - On failure, throws the configured Error with `errors: ValidationErrors`.
  */
-type ValidateFunction = <T extends Record<string, unknown>>(
-  data: unknown,
-  constraints: ConstraintMapping<T> | Record<string, ConstraintValue>
-) => T;
+type ValidateFunction = {
+  /**
+   * **Automatic inference** — resolves the return type from the data type and
+   * constraint phantom brands.
+   *
+   * - If `T` is a concrete type (not `{}` or `unknown`) and shares keys with `C`,
+   *   each matching property is **narrowed** via intersection (`T[K] & __type__`)
+   *   using `NarrowByConstraints`. This is the "data-type-aware" path.
+   * - Otherwise, the return type is **inferred entirely from the constraints**
+   *   using `InferValidatedType`. This is the "constraint-only" path and is
+   *   triggered when `data` is untyped (`unknown`) or an empty literal `{}`.
+   *
+   * @example Data-type-aware narrowing:
+   * ```ts
+   * type User = { name: string | undefined; age: number | undefined };
+   * const user: User = { name: 'Alice', age: 30 };
+   * const result = validate(user, { name: is.string(), age: is.integer() });
+   * // result: { name: string; age: number }
+   * ```
+   *
+   * @example Constraint-only inference:
+   * ```ts
+   * const result = validate(data, { age: is.integer(), name: is.string() });
+   * // result: { age: number; name: string }
+   * ```
+   */
+  <T, const C extends Record<string, ConstraintValue>>(
+    data: T,
+    constraints: C
+  ): T extends Record<string, unknown>
+    ? [Extract<keyof C, keyof T>] extends [never]
+      ? InferValidatedType<C>
+      : NarrowByConstraints<T, C>
+    : InferValidatedType<C>;
+
+  /**
+   * **Explicit type parameter** — backward-compatible overload for callers
+   * that provide an explicit type parameter: `validate<User>(data, constraints)`.
+   */
+  <T>(data: unknown, constraints: Record<string, ConstraintValue>): T;
+};
 
 /**
  * An Error constructor / class that accepts a `ValidationErrors` map as its
@@ -605,6 +957,10 @@ type ValidateFunction = <T extends Record<string, unknown>>(
  * The thrown error is expected to expose the validation failures (typically
  * as an `errors` property), but the exact shape depends on the Error class
  * supplied by the consumer (e.g., `AssertionFailedError`, `ValidationFailedError`).
+ *
+ * Uses a broad constructor signature to accommodate Error subclasses from
+ * packages without TypeScript declarations (e.g., `standard-http-error`),
+ * where the full prototype chain may not be statically resolvable.
  *
  * @example
  * ```ts
@@ -617,7 +973,8 @@ type ValidateFunction = <T extends Record<string, unknown>>(
  * }
  * ```
  */
-type ValidatorErrorType = new (errors: ValidationErrors) => Error;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ValidatorErrorType = new (...args: any[]) => object;
 
 /**
  * A logging function called with the (potentially obfuscated) validation errors
@@ -795,6 +1152,18 @@ declare namespace validator {
     CoreAssertClassName,
     /** Helper for typing `this` inside custom assert factory functions. */
     CustomAssertThis,
+    /** Extracts the phantom `__type__` brand from a constraint value. */
+    InferFromConstraintValue,
+    /** Infers the full validated type from a constraint mapping. */
+    InferValidatedType,
+    /** Narrows each property of T based on constraint phantom brands. */
+    NarrowByConstraints,
+    /** Applies a single constraint's phantom narrowing to a property type. */
+    ApplyNarrowing,
+    /** Type narrowing overrides for validator.js-asserts methods. */
+    NarrowingValidatorJSAsserts,
+    /** Converts a union type to an intersection via contravariant inference. */
+    UnionToIntersection,
     /** Signature of the `validate()` and `assert()` functions. */
     ValidateFunction,
     /** Recursive map of validation failures keyed by property name. */
