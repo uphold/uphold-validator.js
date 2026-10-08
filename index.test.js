@@ -149,6 +149,28 @@ describe('Validator', () => {
       }
     });
 
+    it('should throw a TypeError when the obfuscator returns a malformed result', test => {
+      // An unchecked obfuscator return left the thrown `ValidationError` without an `errors`
+      // payload, so every documented consumer (`e.errors.foo.map(error => error.show())`) failed
+      // with a TypeError instead of surfacing the validation failure.
+      for (const obfuscator of [() => ({}), () => undefined, () => 'nope', () => ({ errors: null })]) {
+        const { assert, is } = validator({
+          AssertionError: AssertionFailedError,
+          ValidationError: ValidationFailedError,
+          obfuscator
+        });
+
+        try {
+          assert({}, { foo: is.required() });
+
+          test.assert.fail('Expected error to be thrown');
+        } catch (e) {
+          test.assert.ok(e instanceof TypeError, `expected a TypeError, got ${e.constructor.name}`);
+          test.assert.match(e.message, /obfuscator/);
+        }
+      }
+    });
+
     it('should call logger', test => {
       const logger = test.mock.fn();
       const { assert, is } = validator({

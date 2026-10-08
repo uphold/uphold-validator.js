@@ -28,7 +28,10 @@ const noop = () => {};
 function getMask(object) {
   const mask = [];
 
-  for (const key in object) {
+  // `Object.keys`, not `for…in`: the inherited enumerable properties of a constraint object are
+  // not part of its schema, and including them would build a mask path that selects data the
+  // caller never asked to validate.
+  for (const key of Object.keys(object)) {
     if (_.isPlainObject(object[key])) {
       mask.push(`${key}(${getMask(object[key])})`);
     } else {
@@ -56,7 +59,21 @@ function validate(ValidationError, logger, obfuscator, mask) {
     const errors = validator.validate(data, new Constraint(constraints, { deepRequired: true }));
 
     if (errors !== true) {
-      const { errors: obfuscated } = obfuscator({ errors });
+      // The obfuscator is caller-supplied and its return value was never checked. A malformed
+      // return (`{}`, `undefined`, a primitive) left `obfuscated` empty, so the thrown
+      // `ValidationError` carried no `errors` payload even though the `try` path reported
+      // success — and every documented consumer (`e.errors.foo.map(error => error.show())`) then
+      // failed with a TypeError instead of reporting the validation failure.
+      const result = obfuscator({ errors });
+
+      if (result === null || typeof result !== 'object' || typeof result.errors !== 'object' || result.errors === null) {
+        throw new TypeError(
+          'Expected the `obfuscator` to return an object with an `errors` object, ' +
+            `but received ${_.isPlainObject(result) ? 'an object without `errors`' : typeof result}`
+        );
+      }
+
+      const { errors: obfuscated } = result;
 
       logger(obfuscated);
 
