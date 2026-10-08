@@ -100,7 +100,7 @@ Return validated properties (masking):
 Create a validator with masking enabled by passing the `mask` option set to `true`.
 
 ```js
-const { assert, is } = require('path/to/validator');
+const { is, validate } = require('path/to/validator');
 
 const validatedData = validate(
   {
