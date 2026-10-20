@@ -1847,6 +1847,11 @@ lodash@^4.15.0, lodash@^4.17.21:
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.21.tgz#679591c564c3bffaae8454cf0b3df370c3d6911c"
   integrity sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==
 
+lodash@^4.18.1:
+  version "4.18.1"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.18.1.tgz#ff2b66c1f6326d59513de2407bf881439812771c"
+  integrity sha512-dMInicTPVE8d1e5otfwmmjlxkZoUpiVLwyeTdUsi/Caj/gfzzblBcCE5sRHV/AsjuCmxWrte2TNGSYuCeCq+0Q==
+
 log-symbols@^7.0.1:
   version "7.0.1"
   resolved "https://registry.yarnpkg.com/log-symbols/-/log-symbols-7.0.1.tgz#f52e68037d96f589fc572ff2193dc424d48c195b"
@@ -2570,12 +2575,12 @@ url-join@5.0.0:
   resolved "https://registry.yarnpkg.com/url-join/-/url-join-5.0.0.tgz#c2f1e5cbd95fa91082a93b58a1f42fecb4bdbcf1"
   integrity sha512-n2huDr9h9yzd6exQVnH/jU5mr+Pfx08LRXXZhkLLetAMESRj+anQsTAh940iMrIetKAmry9coFuZQ2jY8/p3WA==
 
-validator.js-asserts@^10.1.0:
-  version "10.1.0"
-  resolved "https://registry.yarnpkg.com/validator.js-asserts/-/validator.js-asserts-10.1.0.tgz#6f66e338d7ab6750599cb7fe300fe228d200b2f7"
-  integrity sha512-TfgIHr2HnVUET8GkoSES0Kol3CDowkOeq1wZxH0ontkvcY8PaTPlbSi2kXhZm+LbuIJVXhrRwLojK6x1X3JM2g==
+validator.js-asserts@^11.0.2:
+  version "11.0.2"
+  resolved "https://registry.yarnpkg.com/validator.js-asserts/-/validator.js-asserts-11.0.2.tgz#7195e580cec6932b9d0cf85c84b659261fa7fb73"
+  integrity sha512-T/Ed4uB5uWuzcfGXu1McyYP+sJS6kOf/qv4Jh0lGNcWtQcDznWJTMdnj+KotiqjMnBarkXMuqRH0kuw3UjeL2g==
   dependencies:
-    lodash "^4.17.21"
+    lodash "^4.18.1"
 
 validator.js@^2.0.3:
   version "2.0.3"
