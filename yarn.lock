@@ -2570,10 +2570,10 @@ url-join@5.0.0:
   resolved "https://registry.yarnpkg.com/url-join/-/url-join-5.0.0.tgz#c2f1e5cbd95fa91082a93b58a1f42fecb4bdbcf1"
   integrity sha512-n2huDr9h9yzd6exQVnH/jU5mr+Pfx08LRXXZhkLLetAMESRj+anQsTAh940iMrIetKAmry9coFuZQ2jY8/p3WA==
 
-validator.js-asserts@^10.0.0:
-  version "10.0.0"
-  resolved "https://registry.yarnpkg.com/validator.js-asserts/-/validator.js-asserts-10.0.0.tgz#8f3cbd70b78061927064af71fd532e1138d49433"
-  integrity sha512-wizANa4RnqzPLjZRRR7IyRq1+NN+hd+UpXFs12S1o4dwDbl1cxE+IQEuqtOmf+3MfbVK4jiGKLkFgghUt3VP7Q==
+validator.js-asserts@^10.1.0:
+  version "10.1.0"
+  resolved "https://registry.yarnpkg.com/validator.js-asserts/-/validator.js-asserts-10.1.0.tgz#6f66e338d7ab6750599cb7fe300fe228d200b2f7"
+  integrity sha512-TfgIHr2HnVUET8GkoSES0Kol3CDowkOeq1wZxH0ontkvcY8PaTPlbSi2kXhZm+LbuIJVXhrRwLojK6x1X3JM2g==
   dependencies:
     lodash "^4.17.21"
 
